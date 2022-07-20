@@ -270,5 +270,10 @@ class App {
       this.#renderWorkoutList(work);
     });
   }
+
+  static reset() {
+    localStorage.removeItem('workouts');
+    location.reload();
+  }
 }
 const app = new App();
