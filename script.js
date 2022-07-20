@@ -64,11 +64,17 @@ const inputElevation = document.querySelector('.form__input--elevation');
 class App {
   #map;
   #mapEvent;
+  #mapZoomLvl = 13;
   #workouts = [];
   constructor() {
+    // get user's postiton
     this.#getPosition();
+    // get data from localStorage
+    this.#getLocalStorage();
+    // event handling
     form.addEventListener('submit', this.#newWorkout.bind(this));
     inputType.addEventListener('change', this.#toggleElevationField);
+    containerWorkouts.addEventListener('click', this.#moveToPopup.bind(this));
   }
 
   #getPosition() {
@@ -87,13 +93,17 @@ class App {
     const { latitude, longitude } = position.coords;
     const coords = [latitude, longitude];
     // display user's location with map
-    this.#map = L.map('map').setView(coords, 13);
+    this.#map = L.map('map').setView(coords, this.#mapZoomLvl);
     L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(this.#map);
     // display marker
     this.#map.on('click', this.#showForm.bind(this));
+
+    this.#workouts.forEach(work => {
+      this.#renderMap(work);
+    });
   }
 
   #showForm(mapE) {
@@ -159,15 +169,16 @@ class App {
 
     // add new object to workout array
     this.#workouts.push(workout);
-    console.log(this.#workouts);
     // render workout on the map as marker
     this.#renderMap(workout);
-    this.#hideForm();
     // render workout on the list
     this.#renderWorkoutList(workout);
     // hide input form and clear form value
-    // get lat and lng
+    this.#hideForm();
+    // store data in localstorage
+    this.#setLocalStorage();
   }
+
   #renderMap(workout) {
     L.marker(workout.coords)
       .addTo(this.#map)
@@ -231,6 +242,33 @@ class App {
     </li>
       `;
     form.insertAdjacentHTML('afterend', html);
+  }
+
+  #moveToPopup(e) {
+    const workoutEl = e.target.closest('.workout');
+    if (!workoutEl) return;
+    const workout = this.#workouts.find(
+      work => work.id === workoutEl.dataset.id
+    );
+    console.log(workout);
+    this.#map.setView(workout.coords, this.#mapZoomLvl, {
+      animate: true,
+      pan: {
+        duration: 1,
+      },
+    });
+  }
+
+  #setLocalStorage() {
+    localStorage.setItem('workouts', JSON.stringify(this.#workouts));
+  }
+  #getLocalStorage() {
+    const data = JSON.parse(localStorage.getItem('workouts'));
+    if (!data) return;
+    this.#workouts = data;
+    this.#workouts.forEach(work => {
+      this.#renderWorkoutList(work);
+    });
   }
 }
 const app = new App();
